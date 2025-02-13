@@ -4,7 +4,7 @@ Roughly following Karpathy's videos on building a GPT with Tinygrad to train on 
 
 
 ## notes
-+ So far not able to match pytorch speed running [ng-video-lecture](https://github.com/karpathy/ng-video-lecture/) example code. __needs stats__
++ So far not able to match pytorch speed running [ng-video-lecture](https://github.com/karpathy/ng-video-lecture/) example code. _needs stats_
 + running with `CUDA=1 python gpter.py` seems to work ok. beam search :(
 + beam search is borked: `AssertionError: can only open device CUDA from parent, not SpawnPoolWorker-XX`. breaks on the first case of trying to realize a tensor.
 
@@ -20,4 +20,4 @@ Build cuda_12.5.r12.5/compiler.34385749_0
 ```
 
 ## test run results
-> __fuckin overwrote the file on accident__
+> _fuckin overwrote the file on accident_
