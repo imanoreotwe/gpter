@@ -8,7 +8,7 @@ Roughly following Karpathy's videos on building a GPT with Tinygrad to train on 
 + running with `CUDA=1 python gpter.py` seems to work ok. beam search :(
 + beam search is borked: `AssertionError: can only open device CUDA from parent, not SpawnPoolWorker-XX`. breaks on the first case of trying to realize a tensor.
 
-current drivers:
+### current drivers:
 ```
 [ NVIDIA-SMI 570.86.15              Driver Version: 570.86.15      CUDA Version: 12.8 ]
 
