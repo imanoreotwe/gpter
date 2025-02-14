@@ -12,7 +12,7 @@ block_size = 256 # what is the maximum context length for predictions?
 eval_iters = 200
 eval_interval = 500
 learning_rate = 3e-4
-max_iters = 5000
+max_iters = 10000
 n_embed = 384
 
 class Head:
@@ -39,11 +39,48 @@ class Head:
         out  = wei @ v
         return out
 
+class MultiHeadAttention:
+    def __init__(self, num_heads, head_size):
+        self.heads = [Head(head_size) for _ in range(num_heads)]
+        self.proj = nn.Linear(n_embed, n_embed)
+
+    def __call__(self, x):
+        first = self.heads[0](x)
+        out = first.cat(*[h(x) for h in self.heads[1:]], dim=-1)
+        out = self.proj(out)
+        return out
+
+class FeedForward():
+    """ simpel linear layer followed by a non-linearity """
+
+    def __init__(self, n_embed):
+        self.w1 = nn.Linear(n_embed, 4 * n_embed)
+        self.w2 = nn.Linear(4 * n_embed, n_embed) # projection layer
+
+    def __call__(self, x): 
+        return self.w2(self.w1(x).relu())
+
+class Block():
+    """ transformer block: communication followed by computation """
+
+    def __init__(self, n_embed, n_head):
+        head_size = n_embed // n_head
+        self.sa = MultiHeadAttention(n_head, head_size)
+        self.ffwd = FeedForward(n_embed)
+        self.ln1 = nn.LayerNorm(n_embed)
+        self.ln2 = nn.LayerNorm(n_embed)
+
+    def __call__(self, x):
+        x = x + self.sa(self.ln1(x))
+        x = x + self.ffwd(self.ln2(x))
+        return x
+
 class BigramLanguageModel:
     def __init__(self):
         self.token_embedding_table = nn.Embedding(vocab_size=vocab_size, embed_size=n_embed)
         self.position_embedding_table = nn.Embedding(block_size, n_embed)
-        self.sa_head = Head(n_embed)
+        self.sa_heads = MultiHeadAttention(4, n_embed//4)
+        self.ffwd = FeedForward(n_embed)
         self.lm_head = nn.Linear(n_embed, vocab_size)
 
     def __call__(self, idx, targets=None):
@@ -52,7 +89,8 @@ class BigramLanguageModel:
         tok_emb = self.token_embedding_table(idx) # (B,T,C)
         pos_emb = self.position_embedding_table(Tensor.arange(T)) # (T,C)
         x = tok_emb + pos_emb # (B,T,C)
-        x = self.sa_head(x) # one head of self attention
+        x = self.sa_heads(x) # one head of self attention
+        x = self.ffwd(x)
         logits = self.lm_head(x) # (B,T,vocab_size)
 
         if targets is None:
@@ -78,7 +116,7 @@ class BigramLanguageModel:
 
 def get_batch(split):
     data = train_data if split == 'train' else val_data
-    #rand = Tensor.randint(high=(len(data) - block_size)).item()
+    #rand = Tensor.randint(high=(len(data) - block_size), requires_grad=False).item()
     rand = np.random.randint(0,(len(data)-block_size*batch_size))
     #rand = 1337
 
@@ -140,6 +178,7 @@ val_data = data[n:]
 m = BigramLanguageModel()
 optimizer = nn.optim.AdamW(nn.state.get_parameters(m), lr=learning_rate)
 losses, times, speed = [], [], []
+print(sum(p.numel() for p in nn.state.get_parameters(m))/1e6, 'M parameters')
 
 # Traning phase
 for steps in range(max_iters):
@@ -154,7 +193,7 @@ for steps in range(max_iters):
     Device[Device.DEFAULT].synchronize()
     t1 = time.time()
 
-    losses.append(loss.item())
+    #losses.append(loss.item())
     times.append(t1-t0)
     speed.append(batch_size*block_size/(t1-t0))
 
