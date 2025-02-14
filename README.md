@@ -22,6 +22,7 @@ Build cuda_12.5.r12.5/compiler.34385749_0
 ```
 
 ## test run results
+with only single attention head:
 ```
 n_embed = 384
 batch_size = 64
