@@ -8,6 +8,7 @@ Roughly following Karpathy's videos on building a GPT with Tinygrad to train on 
 + So far not able to match pytorch speed running [ng-video-lecture](https://github.com/karpathy/ng-video-lecture/) example code. _needs stats_
 + running with `CUDA=1 python gpter.py` seems to work ok. beam search :(
 + beam search is borked: `AssertionError: can only open device CUDA from parent, not SpawnPoolWorker-XX`. breaks on the first case of trying to realize a tensor.
++ [custom tinygrad driver](https://github.com/aikitoria/open-gpu-kernel-modules) is slightly slower than the og driver (tested 570.86.15 vs 570.86.16)
 
 ### current drivers:
 ```
