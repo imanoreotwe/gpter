@@ -4,7 +4,7 @@ Roughly following Karpathy's videos on building a GPT with Tinygrad to train on 
 
 
 ## notes
-+ benchmark `Tensor.randint()` vs `np.random.randint()`
++ ~~benchmark `Tensor.randint()` vs `np.random.randint()`~~ `Tensor.randint()` is SIGNIFICANTLY slower than `np.random.randint`
 + So far not able to match pytorch speed running [ng-video-lecture](https://github.com/karpathy/ng-video-lecture/) example code. _needs stats_
 + running with `CUDA=1 python gpter.py` seems to work ok. beam search :(
 + beam search is borked: `AssertionError: can only open device CUDA from parent, not SpawnPoolWorker-XX`. breaks on the first case of trying to realize a tensor.
