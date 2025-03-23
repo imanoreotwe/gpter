@@ -14,6 +14,9 @@ eval_interval = 500
 learning_rate = 3e-4
 max_iters = 10000
 n_embed = 384
+n_layer = 6
+n_head = 6
+dropout = 0.2
 
 class Head:
     """ one head of self-attention """
@@ -34,6 +37,7 @@ class Head:
         tril = Tensor.tril(Tensor.ones(T,T))
         wei = wei.masked_fill(tril == 0, float('-inf'))
         wei = wei.softmax()
+        wei = wei.dropout(dropout)
 
         v = self.value(x)
         out  = wei @ v
@@ -48,6 +52,7 @@ class MultiHeadAttention:
         first = self.heads[0](x)
         out = first.cat(*[h(x) for h in self.heads[1:]], dim=-1)
         out = self.proj(out)
+        out = out.dropout(dropout)
         return out
 
 class FeedForward():
@@ -58,7 +63,7 @@ class FeedForward():
         self.w2 = nn.Linear(4 * n_embed, n_embed) # projection layer
 
     def __call__(self, x): 
-        return self.w2(self.w1(x).relu())
+        return self.w2(self.w1(x).relu()).dropout(dropout)
 
 class Block():
     """ transformer block: communication followed by computation """
@@ -79,8 +84,8 @@ class BigramLanguageModel:
     def __init__(self):
         self.token_embedding_table = nn.Embedding(vocab_size=vocab_size, embed_size=n_embed)
         self.position_embedding_table = nn.Embedding(block_size, n_embed)
-        self.sa_heads = MultiHeadAttention(4, n_embed//4)
-        self.ffwd = FeedForward(n_embed)
+        self.blocks = [Block(n_embed, n_head) for _ in range(n_layer)]
+        self.ln_f = nn.LayerNorm(n_embed)
         self.lm_head = nn.Linear(n_embed, vocab_size)
 
     def __call__(self, idx, targets=None):
@@ -89,8 +94,11 @@ class BigramLanguageModel:
         tok_emb = self.token_embedding_table(idx) # (B,T,C)
         pos_emb = self.position_embedding_table(Tensor.arange(T)) # (T,C)
         x = tok_emb + pos_emb # (B,T,C)
-        x = self.sa_heads(x) # one head of self attention
-        x = self.ffwd(x)
+
+        for block in self.blocks:
+            x = block(x)
+
+        x = self.ln_f(x)
         logits = self.lm_head(x) # (B,T,vocab_size)
 
         if targets is None:
